@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ofbl_policy_web
+    ports:
+      - "8080:80"
+    environment:
+      - DB_HOST=db
+      - DB_USER=ofbl_user
+      - DB_PASS=ofbl_secret_pass
+      - DB_NAME=ofb_policy_db
+      - DB_PORT=3306
+    depends_on:
+      - db
+    volumes:
+      - .:/var/www/html
+    restart: unless-stopped
+
+  db:
+    image: mysql:8.0
+    container_name: ofbl_policy_db
+    environment:
+      MYSQL_DATABASE: ofb_policy_db
+      MYSQL_USER: ofbl_user
+      MYSQL_PASSWORD: ofbl_secret_pass
+      MYSQL_ROOT_PASSWORD: root_secure_password
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./database.sql:/docker-entrypoint-initdb.d/database.sql
+    restart: unless-stopped
+
+volumes:
+  db_data:

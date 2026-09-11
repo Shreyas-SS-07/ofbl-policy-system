@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OFBL Defence Policy Governance &amp; Command Portal | Munitions India Limited</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="assets/css/admin.css">
+    <script src="assets/js/chart.js"></script>
+    <script src="assets/js/portal-store.js"></script>
+    <style>
+        /* Specific tactical overlay accents */
+        .hud-scanline {
+            position: relative;
+        }
+        .hud-scanline::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            z-index: 20;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+            opacity: 0.35;
+        }
+        .crypto-tag {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: #64748b;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .comment-stream {
+            background: #040810;
+            border-radius: var(--radius-xs);
+            padding: 10px;
+            margin-top: 8px;
+            max-height: 140px;
+            overflow-y: auto;
+            border-left: 2px solid var(--defence-gold);
+            font-size: 12px;
+        }
+        .military-clock {
+            font-family: var(--font-mono);
+            color: var(--defence-gold);
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+    </style>
+</head>
+<body class="tactical-grid-bg">
+
+    <!-- INTERACTIVE TACTICAL CANVAS (FLOATING OBJECTS & DEFENCE RADAR) -->
+    <canvas id="tacticalCanvas"></canvas>
+
+    <!-- CUSTOM TACTICAL TARGETING CURSOR -->
+    <div id="tacticalCursorDot"></div>
+    <div id="tacticalCursorRing"></div>
+
+    <!-- NATIONAL SECURITY CLASSIFICATION RIBBON -->
+    <div class="security-ribbon">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="security-ribbon-flag">
+                <span class="flag-saffron"></span>
+                <span class="flag-white"></span>
+                <span class="flag-green"></span>
+            </span>
+            <span class="classification-badge">RESTRICTED // OFFICIAL DEFENCE USE ONLY</span>
+            <span style="color: #475569;">|</span>
+            <span style="color: #cbd5e1; font-size: 11px;">MINISTRY OF DEFENCE &bull; GOVT. OF INDIA &bull; MUNITIONS INDIA LIMITED</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <div class="military-clock" id="liveMilitaryTime">IST: --:--:--</div>
+            <a href="index.php" class="btn btn-sm btn-primary" style="font-size: 11px; padding: 3px 8px;">
+                <i class="bi bi-hdd-network-fill"></i> PHP/MySQL Server Stack
+            </a>
+        </div>
+    </div>
+
+    <!-- MOBILE NAVBAR (VISIBLE ON MOBILE & TABLETS) -->
+    <div class="mobile-navbar">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <button class="mobile-menu-btn" onclick="toggleMobileSidebar()" aria-label="Toggle Menu">
+                <i class="bi bi-list"></i>
+            </button>
+            <div style="font-family: var(--font-heading); font-weight: 700; font-size: 13px; color: var(--defence-gold); letter-spacing: 0.5px;">
+                OFBL COMMAND &bull; MIL
+            </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <button class="fullscreen-btn" onclick="toggleFullscreen()" style="padding: 4px 8px; font-size: 10px;">
+                <i class="bi bi-arrows-fullscreen"></i>
+            </button>
+            <button class="btn btn-sm btn-secondary" onclick="document.body.classList.toggle('light-tactical')" style="padding: 4px 8px; font-size: 10px;">
+                <i class="bi bi-circle-half"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- APP LAYOUT CONTAINER -->
+    <div class="app-layout">
+        <!-- MOBILE BACKDROP -->
+        <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleMobileSidebar()"></div>
+
+        <!-- MAIN SIDEBAR -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-crest">
+                    <i class="bi bi-shield-shaded"></i>
+                </div>
+                <div class="sidebar-title">
+                    <h2>OFBL COMMAND</h2>
+                    <p>Munitions India Ltd</p>
+                </div>
+            </div>
+
+            <ul class="sidebar-nav">
+                <li class="nav-label">Operational Mode</li>
+                <li>
+                    <a href="#" onclick="setMode('admin')" id="navAdmin" class="active">
+                        <i class="bi bi-shield-lock-fill"></i> Command HQ (Admin)
+                    </a>
+                </li>
+                <li>
+                    <a href="#" onclick="setMode('user')" id="navUser">
+                        <i class="bi bi-terminal-split"></i> Personnel Vault (Staff)
+                    </a>
+                </li>
+                <li class="nav-label">Enterprise Stack</li>
+                <li>
+                    <a href="install.php">
+                        <i class="bi bi-database-fill-gear"></i> Database Migrator
+                    </a>
+                </li>
+                <li>
+                    <a href="user/about.php">
+                        <i class="bi bi-award-fill"></i> Mentors &amp; Project Report
+                    </a>
+                </li>
+                <li>
+                    <a href="#" onclick="resetDemoData()">
+                        <i class="bi bi-arrow-counterclockwise"></i> Reset Demo State
+                    </a>
+                </li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <div>
+                    <div>CORE: <span style="color:#d4af37;">v2.0-SEC</span></div>
+                    <div style="font-size:9.5px; color:#64748b;">NODE: OFBL-BALANGIR</div>
+                </div>
+                <span style="color:#10b981; font-weight:700;">● DEFCON-4</span>
+            </div>
+        </aside>
+
+        <!-- MAIN VIEW AREA -->
+        <main class="main">
+        
+        <!-- TOPBAR HUD -->
+        <div class="topbar">
+            <div class="topbar-left">
+                <h2 id="portalViewTitle">Officer Command &amp; Policy Governance Center</h2>
+                <p id="portalViewSub">Ordnance Factory Badmal &bull; High-Security Defence Directive Management</p>
+            </div>
+            <div class="topbar-right">
+                <div class="role-switch-container">
+                    <button class="role-btn active" id="btnModeAdmin" onclick="setMode('admin')">
+                        <i class="bi bi-shield-shaded"></i> COMMAND HQ
+                    </button>
+                    <button class="role-btn" id="btnModeUser" onclick="setMode('user')">
+                        <i class="bi bi-person-badge"></i> PERSONNEL
+                    </button>
+                </div>
+                <button class="fullscreen-btn" onclick="toggleFullscreen()" id="btnFullscreen" title="Toggle Immersive Fullscreen HUD (Press 'F')">
+                    <i class="bi bi-arrows-fullscreen"></i> <span id="fullscreenText">FULLSCREEN HUD</span>
+                </button>
+                <button class="btn btn-sm btn-secondary" onclick="document.body.classList.toggle('light-tactical')" title="Toggle Tactical Contrast">
+                    <i class="bi bi-circle-half"></i> Contrast
+                </button>
+            </div>
+        </div>
+
+        <div id="toastNotice"></div>
+
+        <!-- VIEW A: OFFICER COMMAND DASHBOARD (ADMIN) -->
+        <div id="viewAdmin">
+            <!-- TACTICAL TELEMETRY CARDS -->
+            <div class="cards">
+                <div class="bracket-box">
+                    <div class="card-top">
+                        <h3>Classified Directives</h3>
+                        <div class="card-icon gold"><i class="bi bi-file-earmark-lock2-fill"></i></div>
+                    </div>
+                    <div class="card-value" id="statPolicies" style="color:var(--defence-gold);">05</div>
+                    <div class="card-subtext"><span style="color:#10b981; font-weight:bold;">↑ ALL ACTIVE</span> &bull; DGQA Certified</div>
+                </div>
+
+                <div class="bracket-box">
+                    <div class="card-top">
+                        <h3>Cleared Personnel</h3>
+                        <div class="card-icon blue"><i class="bi bi-person-vcard-fill"></i></div>
+                    </div>
+                    <div class="card-value" id="statUsers" style="color:var(--defence-cyan);">06</div>
+                    <div class="card-subtext">ITC &bull; PROD &bull; SAFE &bull; DGQA</div>
+                </div>
+
+                <div class="bracket-box">
+                    <div class="card-top">
+                        <h3>Factory Divisions</h3>
+                        <div class="card-icon green"><i class="bi bi-building-fill-gear"></i></div>
+                    </div>
+                    <div class="card-value" id="statSections" style="color:var(--defence-emerald);">06</div>
+                    <div class="card-subtext">Ammunition &bull; Explosives Bays</div>
+                </div>
+
+                <div class="bracket-box" id="pendingKpiBox">
+                    <div class="card-top">
+                        <h3>Clearance Requisitions</h3>
+                        <div class="card-icon amber"><i class="bi bi-exclamation-octagon-fill"></i></div>
+                    </div>
+                    <div class="card-value" id="statPendingCount" style="color:var(--defence-amber);">01</div>
+                    <div class="card-subtext" id="statPendingLabel" style="color:var(--defence-amber); font-weight:bold;">ACTION REQUIRED</div>
+                </div>
+            </div>
+
+            <!-- ANALYTICS & APPROVAL QUEUE -->
+            <div class="dashboard-grid">
+                <div class="panel">
+                    <div class="panel-header">
+                        <h3><i class="bi bi-pie-chart-fill" style="color:var(--defence-gold);"></i> Directive Allocation by Section</h3>
+                        <span>DGQA AUDIT METRICS</span>
+                    </div>
+                    <div style="max-width: 360px; margin: 10px auto;">
+                        <canvas id="adminChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <h3><i class="bi bi-fingerprint" style="color:var(--defence-amber);"></i> Clearance Queue (Vetting)</h3>
+                        <span id="pendingCountBadge" class="badge-code" style="color:var(--defence-amber); border-color:rgba(245,158,11,0.4);">1 PENDING</span>
+                    </div>
+                    <div id="pendingUserList" style="display:flex; flex-direction:column; gap:8px;"></div>
+                    <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border);">
+                        <button onclick="openUploadModal()" class="btn btn-primary" style="width: 100%; justify-content: center;">
+                            <i class="bi bi-file-earmark-plus-fill"></i> Authorize &amp; Upload New Directive
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AUTHORIZED DIRECTIVE REPOSITORY (ADMIN TABLE) -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h3><i class="bi bi-shield-check" style="color:var(--defence-gold);"></i> Authorized Munitions Directives &amp; Protocols</h3>
+                    <button onclick="openUploadModal()" class="btn btn-sm btn-primary">
+                        <i class="bi bi-plus-lg"></i> Issue Directive
+                    </button>
+                </div>
+                <div class="table-box" style="margin-top:0; padding:0; border:none; box-shadow:none;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Directive Code &amp; Checksum</th>
+                                <th>Title &amp; Operational Scope</th>
+                                <th>Division</th>
+                                <th>Clearance</th>
+                                <th>Effective Date</th>
+                                <th>Version</th>
+                                <th>Dossier Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminPolicyTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW B: FACTORY FLOOR TERMINAL (USER) -->
+        <div id="viewUser" style="display: none;">
+            <!-- DEPARTMENT FILTER CHIPS -->
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px;" id="deptFilterChips">
+                <button class="dept-chip active" onclick="filterUserDept('ALL')">ALL DIVISIONS</button>
+                <button class="dept-chip" onclick="filterUserDept('ITC')">ITC &bull; CYBER HYGIENE</button>
+                <button class="dept-chip" onclick="filterUserDept('SAFE')">SAFE &bull; EXPLOSIVES</button>
+                <button class="dept-chip" onclick="filterUserDept('DGQA')">DGQA &bull; QUALITY ASSURANCE</button>
+                <button class="dept-chip" onclick="filterUserDept('PROD')">PROD &bull; AMMUNITION ASSEMBLY</button>
+                <button class="dept-chip" onclick="filterUserDept('HRD')">HRD &bull; CONDUCT &amp; ETHICS</button>
+            </div>
+
+            <!-- SEARCH BAR HUD -->
+            <div class="panel" style="margin-bottom: 20px; padding: 12px 18px;">
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <i class="bi bi-search" style="color: var(--defence-gold);"></i>
+                    <input type="text" id="userSearchInput" oninput="renderUserPolicies()" placeholder="Query directives by code (POL-ITC-2026-001), DGQA specification, or keyword..." style="flex:1; border:none; background:transparent; font-family:var(--font-mono); font-size:13px;">
+                </div>
+            </div>
+
+            <!-- USER POLICY REPOSITORY -->
+            <div class="table-box">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 170px;">MIL Reference</th>
+                            <th>Directive Title &amp; Operational Scope</th>
+                            <th style="width: 110px;">Division</th>
+                            <th style="width: 110px;">Classification</th>
+                            <th style="width: 120px;">Dossier View</th>
+                            <th style="width: 320px;">Queries &amp; Technical Inquiries</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userPolicyTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ACADEMIC & INSTITUTIONAL REPORT BANNER -->
+        <div class="bracket-box" style="margin-top: 24px; padding: 16px 20px; background:#040810; border-color:var(--defence-border);">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                <div>
+                    <div style="font-size:11px; font-family:var(--font-mono); color:var(--defence-gold); font-weight:700;">
+                        PROJECT ARCHITECT &bull; OFFICIAL GOVT. INTERNSHIP ATTESTATION
+                    </div>
+                    <div style="font-size:13px; font-weight:700; color:#ffffff; margin-top:2px;">
+                        Shreyas Sankalp Sahu &bull; School of Computer Engineering, KIIT Deemed to be University
+                    </div>
+                    <div style="font-size:11.5px; color:#94a3b8; margin-top:3px; font-family:var(--font-mono);">
+                        Mentorship: Smt. Minati Pradhan (JWM/ITC) &bull; Shri Trinatha Behera (SR MGR/HRD) &bull; Shri M.S Naik (OIC/HRD)
+                    </div>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <a href="user/about.php" class="btn btn-sm btn-secondary" style="font-family:var(--font-mono); font-size:11px;">
+                        <i class="bi bi-file-earmark-text"></i> View Full Internship Report
+                    </a>
+                </div>
+            </div>
+        </main>
+    </div> <!-- /.app-layout -->
+
+    <!-- UPLOAD DIRECTIVE MODAL -->
+    <div class="modal" id="uploadModal">
+        <div class="modal-box">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid var(--border); padding-bottom:12px;">
+                <h3 style="font-size:16px; font-family:var(--font-heading); color:var(--defence-gold);">
+                    <i class="bi bi-shield-plus"></i> Issue New Munitions Directive
+                </h3>
+                <button onclick="closeUploadModal()" style="background:none; border:none; font-size:20px; cursor:pointer; color:var(--text-secondary);">&times;</button>
+            </div>
+            <form onsubmit="handleDemoUpload(event)">
+                <div class="input-group">
+                    <label>Directive Title *</label>
+                    <input type="text" id="upTitle" placeholder="e.g. Standard Operating Procedure for Munitions Storage" required>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                    <div class="input-group">
+                        <label>Directive Ref *</label>
+                        <input type="text" id="upNumber" placeholder="e.g. POL-PROD-2026-009" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Effective Date *</label>
+                        <input type="date" id="upDate" value="2026-04-20" required>
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns: 2fr 1fr; gap:12px;">
+                    <div class="input-group">
+                        <label>Ordnance Division *</label>
+                        <select id="upSection" required>
+                            <option value="1">Information Technology Centre (ITC)</option>
+                            <option value="2">Ordnance Production Division (PROD)</option>
+                            <option value="3">Quality Assurance &amp; Inspection (DGQA)</option>
+                            <option value="4">Industrial Safety &amp; Explosives (SAFE)</option>
+                            <option value="5">Finance &amp; Defence Accounts (FIN)</option>
+                            <option value="6">Human Resource Development (HRD)</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Revision Version</label>
+                        <input type="text" id="upVersion" value="1.0">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Operational Scope Summary</label>
+                    <textarea id="upHint" rows="2" placeholder="Mandatory technical guidelines, compliance threshold, and factory directives..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; padding:10px; margin-top:8px;">
+                    <i class="bi bi-patch-check-fill"></i> Sign &amp; Issue Directive
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- DIRECTIVE DOSSIER & PDF MODAL -->
+    <div class="modal" id="pdfModal">
+        <div class="modal-box" style="max-width: 960px; height: 86vh; padding: 0; display: flex; flex-direction: column; overflow: hidden; border-color: var(--defence-gold);">
+            <div style="padding: 12px 18px; background: #040810; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border);">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span class="badge-code" style="color:var(--defence-gold);">OFBL-DOSSIER</span>
+                    <strong id="modalPdfTitle" style="font-size:14px; color:#ffffff;">Directive Document Viewer</strong>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <a id="modalPdfDownload" href="#" download class="btn btn-sm btn-primary">
+                        <i class="bi bi-download"></i> Download PDF
+                    </a>
+                    <button onclick="closePdfModal()" class="btn btn-sm btn-secondary">&times; Close</button>
+                </div>
+            </div>
+            <div style="flex: 1; width: 100%; height: 100%; background: #111;">
+                <iframe id="pdfFrame" src="" style="width:100%; height:100%; border:none;"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- TACTICAL AI COMPLIANCE ASSISTANT -->
+    <div class="chatbot-fab" onclick="toggleChatbot()" title="OFBL Compliance Intelligence">
+        <i class="bi bi-cpu"></i>
+    </div>
+    <div class="chatbot-drawer" id="chatbotDrawer">
+        <div style="padding:12px 16px; background:#040810; color:white; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border);">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <i class="bi bi-cpu-fill" style="color:var(--defence-gold);"></i>
+                <span style="font-family:var(--font-heading); font-size:13px; font-weight:700;">OFBL Tactical Intelligence</span>
+            </div>
+            <button onclick="toggleChatbot()" style="background:none; border:none; color:white; font-size:18px; cursor:pointer;">&times;</button>
+        </div>
+        <div style="flex:1; padding:12px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; background:#070d18;" id="botMessages">
+            <div style="padding:10px 12px; border-radius:6px; font-size:12px; background:#0c172a; border:1px solid var(--border); max-width:88%; font-family:var(--font-mono);">
+                SECURITY NODE #07 ACTIVE. Query any OFBL directive, safety regulation, or DGQA munition specification.
+            </div>
+        </div>
+        <div style="padding:8px; display:flex; flex-direction:column; gap:4px; background:#040810; border-top:1px solid var(--border);">
+            <button class="btn btn-sm btn-secondary" style="text-align:left; font-size:11px; font-family:var(--font-mono);" onclick="askBot('How do I search for safety protocols?')">
+                &bull; Explosives &amp; Safety SOPs
+            </button>
+            <button class="btn btn-sm btn-secondary" style="text-align:left; font-size:11px; font-family:var(--font-mono);" onclick="askBot('What are the DGQA quality standards?')">
+                &bull; DGQA Munitions Quality Benchmarks
+            </button>
+            <button class="btn btn-sm btn-secondary" style="text-align:left; font-size:11px; font-family:var(--font-mono);" onclick="askBot('What is Ordnance Factory Badmal?')">
+                &bull; About Ordnance Factory Badmal (OFBL)
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let currentMode = 'admin';
+        let currentDeptFilter = 'ALL';
+        let chartInstance = null;
+
+        // Synchronize Military Clock in IST
+        function updateMilitaryClock() {
+            const now = new Date();
+            const options = { timeZone: 'Asia/Kolkata', hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' };
+            const timeStr = now.toLocaleTimeString('en-GB', options);
+            const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }).toUpperCase();
+            const clockEl = document.getElementById('liveMilitaryTime');
+            if (clockEl) {
+                clockEl.innerText = `${dateStr} | ${timeStr} IST`;
+            }
+        }
+        setInterval(updateMilitaryClock, 1000);
+        updateMilitaryClock();
+
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById('btnModeAdmin').classList.toggle('active', mode === 'admin');
+            document.getElementById('btnModeUser').classList.toggle('active', mode === 'user');
+            document.getElementById('navAdmin').classList.toggle('active', mode === 'admin');
+            document.getElementById('navUser').classList.toggle('active', mode === 'user');
+
+            document.getElementById('viewAdmin').style.display = mode === 'admin' ? 'block' : 'none';
+            document.getElementById('viewUser').style.display = mode === 'user' ? 'block' : 'none';
+
+            document.getElementById('portalViewTitle').innerText = mode === 'admin' 
+                ? 'Officer Command & Policy Governance Center' 
+                : 'Personnel Policy Vault & Technical Directives';
+            document.getElementById('portalViewSub').innerText = mode === 'admin' 
+                ? 'Ordnance Factory Badmal \u2022 High-Security Defence Directive Management' 
+                : 'Search, review, and comment on official factory regulations';
+
+            if (window.innerWidth < 992) {
+                const sidebar = document.getElementById('sidebar');
+                const backdrop = document.getElementById('sidebarBackdrop');
+                if (sidebar) sidebar.classList.remove('open');
+                if (backdrop) backdrop.classList.remove('open');
+            }
+
+            refreshAll();
+        }
+
+        function toggleMobileSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('sidebarBackdrop');
+            if (sidebar) sidebar.classList.toggle('open');
+            if (backdrop) backdrop.classList.toggle('open');
+        }
+
+        function refreshAll() {
+            const stats = ofblStore.getStats();
+            document.getElementById('statPolicies').innerText = String(stats.policies).padStart(2, '0');
+            document.getElementById('statUsers').innerText = String(stats.users).padStart(2, '0');
+            document.getElementById('statSections').innerText = String(stats.sections).padStart(2, '0');
+            
+            const pendingCountEl = document.getElementById('statPendingCount');
+            const pendingLabelEl = document.getElementById('statPendingLabel');
+            const pendingBadgeEl = document.getElementById('pendingCountBadge');
+
+            if (stats.pendingUsers > 0) {
+                pendingCountEl.innerText = String(stats.pendingUsers).padStart(2, '0');
+                pendingCountEl.style.color = 'var(--defence-amber)';
+                pendingLabelEl.innerText = 'ACTION REQUIRED';
+                pendingLabelEl.style.color = 'var(--defence-amber)';
+                pendingBadgeEl.innerText = stats.pendingUsers + ' PENDING';
+                pendingBadgeEl.className = 'badge-code';
+                pendingBadgeEl.style.color = 'var(--defence-amber)';
+            } else {
+                pendingCountEl.innerText = '00';
+                pendingCountEl.style.color = 'var(--defence-emerald)';
+                pendingLabelEl.innerText = 'ALL CLEARED';
+                pendingLabelEl.style.color = 'var(--defence-emerald)';
+                pendingBadgeEl.innerText = '0 PENDING';
+                pendingBadgeEl.style.color = 'var(--defence-emerald)';
+            }
+
+            renderAdminTable();
+            renderPendingUsers();
+            renderUserPolicies();
+            updateChart();
+        }
+
+        function getClassificationPill(code) {
+            if (code.includes('ITC') || code.includes('ADM')) {
+                return '<span class="clearance-pill clearance-confidential">CONFIDENTIAL</span>';
+            } else if (code.includes('SAFE') || code.includes('DGQA')) {
+                return '<span class="clearance-pill clearance-restricted">RESTRICTED</span>';
+            } else {
+                return '<span class="clearance-pill clearance-internal">INTERNAL</span>';
+            }
+        }
+
+        function getPseudoChecksum(code) {
+            let hash = 0;
+            for (let i = 0; i < code.length; i++) {
+                hash = ((hash << 5) - hash) + code.charCodeAt(i);
+                hash |= 0;
+            }
+            return 'sha256-' + Math.abs(hash).toString(16).padStart(6, '0').slice(0, 6);
+        }
+
+        function renderAdminTable() {
+            const tbody = document.getElementById('adminPolicyTableBody');
+            tbody.innerHTML = '';
+            ofblStore.data.policies.forEach(p => {
+                const tr = document.createElement('tr');
+                const checksum = getPseudoChecksum(p.number);
+                tr.innerHTML = `
+                    <td>
+                        <span class="badge-code">${p.number}</span>
+                        <div class="hash-pill">${checksum}</div>
+                    </td>
+                    <td>
+                        <strong style="color:#ffffff;">${p.title}</strong>
+                        <div style="font-size:11px; color:var(--text-muted); margin-top:3px;">${p.hint || ''}</div>
+                    </td>
+                    <td><span class="badge-code" style="color:var(--text-secondary);">${p.sectionCode}</span></td>
+                    <td>${getClassificationPill(p.number)}</td>
+                    <td style="font-family:var(--font-mono); font-size:11.5px;">${p.date}</td>
+                    <td><span class="badge-code" style="color:var(--defence-emerald);">v${p.version || '1.0'}</span></td>
+                    <td>
+                        <div style="display:flex; gap:6px;">
+                            <button onclick="openPdfModal('${p.pdfFile}', '${p.title.replace(/'/g, "\\\'")}')" class="btn btn-sm btn-primary">
+                                <i class="bi bi-file-earmark-pdf"></i> Inspect
+                            </button>
+                            <button onclick="deleteDemoPolicy(${p.id})" class="btn btn-sm btn-danger" title="Decommission Directive">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderPendingUsers() {
+            const container = document.getElementById('pendingUserList');
+            container.innerHTML = '';
+            const pending = ofblStore.data.users.filter(u => u.status === 'pending');
+            if (pending.length === 0) {
+                container.innerHTML = '<div style="color:var(--defence-emerald); font-family:var(--font-mono); font-size:12px; text-align:center; padding:16px; background:#040810; border-radius:4px;"><i class="bi bi-shield-check"></i> ALL REGISTERED PERSONNEL AUTHORIZED &amp; VETTED</div>';
+                return;
+            }
+            pending.forEach(u => {
+                const div = document.createElement('div');
+                div.className = 'notify-item';
+                div.innerHTML = `
+                    <div class="notify-left">
+                        <div class="notify-icon" style="background:rgba(245,158,11,0.15); color:var(--defence-amber);">
+                            <i class="bi bi-shield-exclamation"></i>
+                        </div>
+                        <div class="notify-text">
+                            <h4>${u.name}</h4>
+                            <p>${u.email} &bull; Division: ${u.dept}</p>
+                        </div>
+                    </div>
+                    <button onclick="approveDemoUser(${u.id})" class="btn btn-sm btn-primary">
+                        <i class="bi bi-check2-circle"></i> Authorize Clearance
+                    </button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function renderUserPolicies() {
+            const tbody = document.getElementById('userPolicyTableBody');
+            tbody.innerHTML = '';
+            const q = (document.getElementById('userSearchInput')?.value || '').toLowerCase();
+
+            const filtered = ofblStore.data.policies.filter(p => {
+                const matchDept = currentDeptFilter === 'ALL' || p.sectionCode === currentDeptFilter;
+                const matchSearch = p.title.toLowerCase().includes(q) || p.number.toLowerCase().includes(q) || (p.hint || '').toLowerCase().includes(q);
+                return matchDept && matchSearch;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:36px; color:var(--text-muted); font-family:var(--font-mono);">NO MATCHING DIRECTIVES FOUND IN ARCHIVE.</td></tr>';
+                return;
+            }
+
+            filtered.forEach(p => {
+                const checksum = getPseudoChecksum(p.number);
+                const comments = ofblStore.data.comments.filter(c => c.policyId === p.id);
+                let commentsHtml = '';
+                comments.forEach(c => {
+                    commentsHtml += `
+                        <div style="margin-bottom:6px; font-size:11.5px; border-bottom:1px solid #142544; padding-bottom:4px;">
+                            <strong style="color:var(--defence-gold);">${c.author}</strong> 
+                            <span style="font-size:9.5px; color:var(--text-muted); font-family:var(--font-mono);">&bull; ${c.date}</span>
+                            <p style="margin-top:2px; color:#e2e8f0;">${c.text}</p>
+                        </div>`;
+                });
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <span class="badge-code">${p.number}</span>
+                        <div class="hash-pill">${checksum} &bull; v${p.version || '1.0'}</div>
+                    </td>
+                    <td>
+                        <strong style="color:#ffffff;">${p.title}</strong>
+                        <p style="font-size:12px; color:var(--text-secondary); margin-top:3px;">${p.hint || ''}</p>
+                    </td>
+                    <td><span class="badge-code" style="color:var(--defence-cyan);">${p.sectionCode}</span></td>
+                    <td>${getClassificationPill(p.number)}</td>
+                    <td>
+                        <button onclick="openPdfModal('${p.pdfFile}', '${p.title.replace(/'/g, "\\\'")}')" class="btn btn-sm btn-primary" style="width:100%; justify-content:center; margin-bottom:4px;">
+                            <i class="bi bi-file-earmark-pdf"></i> Inspect
+                        </button>
+                        <a href="${p.pdfFile}" download class="btn btn-sm btn-secondary" style="width:100%; justify-content:center; font-family:var(--font-mono); font-size:10.5px;">
+                            <i class="bi bi-download"></i> PDF
+                        </a>
+                    </td>
+                    <td>
+                        <div style="display:flex; gap:6px; margin-bottom:6px;">
+                            <input type="text" id="commentInput_${p.id}" placeholder="Enter technical inquiry..." style="font-size:11.5px; padding:5px 8px; font-family:var(--font-mono);">
+                            <button onclick="submitDemoComment(${p.id})" class="btn btn-sm btn-primary"><i class="bi bi-send-fill"></i></button>
+                        </div>
+                        <div class="comment-stream">${commentsHtml || '<span style="color:var(--text-muted); font-size:10.5px; font-family:var(--font-mono);">No inquiries recorded for this directive.</span>'}</div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filterUserDept(code) {
+            currentDeptFilter = code;
+            document.querySelectorAll('#deptFilterChips .dept-chip').forEach(btn => {
+                btn.classList.toggle('active', btn.innerText.includes(code) || (code === 'ALL' && btn.innerText.includes('ALL')));
+            });
+            renderUserPolicies();
+        }
+
+        function updateChart() {
+            const ctx = document.getElementById('adminChart');
+            if (!ctx) return;
+            const dist = ofblStore.getSectionDistribution();
+            if (chartInstance) chartInstance.destroy();
+            chartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: dist.labels,
+                    datasets: [{
+                        data: dist.data,
+                        backgroundColor: ['#d4af37', '#0ea5e9', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'],
+                        borderWidth: 2,
+                        borderColor: '#0b1629',
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { 
+                        legend: { 
+                            position: 'bottom', 
+                            labels: { 
+                                color: '#94a3b8',
+                                font: { family: 'Space Grotesk', size: 10.5 } 
+                            } 
+                        } 
+                    },
+                    cutout: '68%'
+                }
+            });
+        }
+
+        function approveDemoUser(id) {
+            ofblStore.approveUser(id);
+            refreshAll();
+            showNotice('Personnel security clearance successfully authorized and credentials activated.');
+        }
+
+        function deleteDemoPolicy(id) {
+            if (confirm('Decommission this directive from the active factory archive?')) {
+                ofblStore.deletePolicy(id);
+                refreshAll();
+                showNotice('Directive successfully decommissioned.');
+            }
+        }
+
+        function submitDemoComment(policyId) {
+            const input = document.getElementById(`commentInput_${policyId}`);
+            if (input && input.value.trim()) {
+                ofblStore.addComment(policyId, input.value.trim());
+                input.value = '';
+                renderUserPolicies();
+                showNotice('Technical inquiry recorded into discussion register.');
+            }
+        }
+
+        function openUploadModal() { document.getElementById('uploadModal').classList.add('open'); }
+        function closeUploadModal() { document.getElementById('uploadModal').classList.remove('open'); }
+
+        function handleDemoUpload(e) {
+            e.preventDefault();
+            const sectionSelect = document.getElementById('upSection');
+            const secName = sectionSelect.options[sectionSelect.selectedIndex].text;
+            const secCode = secName.match(/\(([^)]+)\)/)[1];
+
+            const newPolicy = {
+                number: document.getElementById('upNumber').value.trim(),
+                title: document.getElementById('upTitle').value.trim(),
+                sectionId: parseInt(sectionSelect.value),
+                sectionName: secName.split(' (')[0],
+                sectionCode: secCode,
+                date: document.getElementById('upDate').value,
+                version: document.getElementById('upVersion').value.trim() || '1.0',
+                pdfFile: 'uploads/pdfs/OFBL_IT_Security_Policy_2026.pdf',
+                hint: document.getElementById('upHint').value.trim(),
+                sizeKb: 250
+            };
+
+            ofblStore.addPolicy(newPolicy);
+            closeUploadModal();
+            refreshAll();
+            showNotice('New factory directive authorized and published to repository.');
+        }
+
+        function openPdfModal(file, title) {
+            document.getElementById('modalPdfTitle').innerText = title;
+            document.getElementById('modalPdfDownload').href = file;
+            document.getElementById('pdfFrame').src = file;
+            document.getElementById('pdfModal').classList.add('open');
+        }
+        function closePdfModal() {
+            document.getElementById('pdfFrame').src = '';
+            document.getElementById('pdfModal').classList.remove('open');
+        }
+
+        function toggleChatbot() { document.getElementById('chatbotDrawer').classList.toggle('open'); }
+
+        function askBot(query) {
+            const box = document.getElementById('botMessages');
+            box.innerHTML += `<div style="padding:7px 10px; border-radius:4px; font-size:11.5px; background:var(--defence-gold); color:#050a14; font-weight:700; align-self:flex-end; max-width:85%; font-family:var(--font-mono);">${query}</div>`;
+            let reply = '';
+            if (query.includes('safety') || query.includes('Explosives')) {
+                reply = 'Directive POL-SAFE-2026-002 enforces mandatory PPE, static electricity grounding, explosive bay magazine limits, and blast corridor protocol.';
+            } else if (query.includes('DGQA') || query.includes('standards')) {
+                reply = 'Directive POL-DGQA-2026-003 specifies batch sampling tolerances, caliber measurement calibration, and lot inspection sign-offs.';
+            } else if (query.includes('Badmal') || query.includes('OFBL')) {
+                reply = 'Ordnance Factory Badmal (OFBL) in Balangir, Odisha is a premier defence manufacturing facility under Munitions India Limited (MIL), Ministry of Defence.';
+            } else {
+                reply = 'For classified assistance, contact the ITC Division at Ordnance Factory Badmal.';
+            }
+
+            setTimeout(() => {
+                box.innerHTML += `<div style="padding:8px 12px; border-radius:4px; font-size:11.5px; background:#0c172a; border:1px solid var(--border); max-width:88%; font-family:var(--font-mono);">${reply}</div>`;
+                box.scrollTop = box.scrollHeight;
+            }, 250);
+        }
+
+        function showNotice(msg) {
+            const n = document.getElementById('toastNotice');
+            n.innerHTML = `<div style="background:#091322; border-left:4px solid var(--defence-gold); border:1px solid var(--border); color:#ffffff; padding:10px 16px; border-radius:4px; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center; font-family:var(--font-mono); font-size:12px;"><span><i class="bi bi-shield-check" style="color:var(--defence-gold);"></i> ${msg}</span><button onclick="this.parentElement.remove()" style="background:none; border:none; color:#94a3b8; font-size:16px; cursor:pointer;">&times;</button></div>`;
+            setTimeout(() => n.innerHTML = '', 4500);
+        }
+
+        function resetDemoData() {
+            if (confirm('Reset demo state back to factory default policies?')) {
+                ofblStore.reset();
+                refreshAll();
+                showNotice('Demo state restored to factory standard.');
+            }
+        }
+
+        // ================================================================
+        // TACTICAL FLOATING OBJECTS & CANVAS SIMULATION
+        // ================================================================
+        const canvas = document.getElementById('tacticalCanvas');
+        const ctx = canvas ? canvas.getContext('2d') : null;
+        let mouseX = window.innerWidth / 2;
+        let mouseY = window.innerHeight / 2;
+        let targetMouseX = mouseX;
+        let targetMouseY = mouseY;
+        let ringX = mouseX;
+        let ringY = mouseY;
+
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+
+        function resizeCanvas() {
+            if (!canvas) return;
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Tactical Floating Particles & Telemetry Markers
+        const particles = [];
+        const numParticles = 36;
+        const telemetryTags = [
+            { text: "LAT: 20°37'N", x: 0.18, y: 0.22, vx: 0.00015, vy: 0.0001 },
+            { text: "LON: 83°15'E", x: 0.78, y: 0.15, vx: -0.00018, vy: 0.00012 },
+            { text: "RADAR: ACTIVE-360°", x: 0.88, y: 0.68, vx: 0.0001, vy: -0.00015 },
+            { text: "NODE: BALANGIR-07", x: 0.25, y: 0.78, vx: -0.00012, vy: -0.0001 }
+        ];
+
+        for (let i = 0; i < numParticles; i++) {
+            particles.push({
+                x: Math.random() * width,
+                y: Math.random() * height,
+                vx: (Math.random() - 0.5) * 0.4,
+                vy: (Math.random() - 0.5) * 0.4,
+                size: Math.random() * 2 + 1,
+                alpha: Math.random() * 0.3 + 0.08,
+                type: Math.random() > 0.75 ? 'cross' : (Math.random() > 0.5 ? 'diamond' : 'dot')
+            });
+        }
+
+        let radarAngle = 0;
+
+        function drawTacticalScene() {
+            if (!ctx) return;
+            ctx.clearRect(0, 0, width, height);
+
+            // 1. Subtle Ambient Glow following the Cursor
+            const cursorGlow = ctx.createRadialGradient(mouseX, mouseY, 5, mouseX, mouseY, 190);
+            cursorGlow.addColorStop(0, 'rgba(212, 175, 55, 0.05)');
+            cursorGlow.addColorStop(0.5, 'rgba(14, 165, 233, 0.025)');
+            cursorGlow.addColorStop(1, 'rgba(5, 11, 20, 0)');
+            ctx.fillStyle = cursorGlow;
+            ctx.beginPath();
+            ctx.arc(mouseX, mouseY, 190, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 2. Floating Rotating Radar Reticle in Background
+            radarAngle += 0.007;
+            const rx = width * 0.82;
+            const ry = height * 0.32;
+            const rRadius = 85;
+
+            ctx.save();
+            ctx.strokeStyle = 'rgba(212, 175, 55, 0.08)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.arc(rx, ry, rRadius, 0, Math.PI * 2);
+            ctx.arc(rx, ry, rRadius * 0.5, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Radar Crosshairs
+            ctx.beginPath();
+            ctx.moveTo(rx - rRadius - 10, ry);
+            ctx.lineTo(rx + rRadius + 10, ry);
+            ctx.moveTo(rx, ry - rRadius - 10);
+            ctx.lineTo(rx, ry + rRadius + 10);
+            ctx.stroke();
+
+            // Radar Sweep Arm
+            ctx.strokeStyle = 'rgba(212, 175, 55, 0.22)';
+            ctx.beginPath();
+            ctx.moveTo(rx, ry);
+            ctx.lineTo(rx + Math.cos(radarAngle) * rRadius, ry + Math.sin(radarAngle) * rRadius);
+            ctx.stroke();
+            ctx.restore();
+
+            // 3. Floating Telemetry Labels (Drifting with Parallax Response)
+            ctx.font = '10px "JetBrains Mono", monospace';
+            ctx.fillStyle = 'rgba(212, 175, 55, 0.25)';
+            telemetryTags.forEach(t => {
+                t.x += t.vx;
+                t.y += t.vy;
+                if (t.x < 0.05 || t.x > 0.95) t.vx *= -1;
+                if (t.y < 0.05 || t.y > 0.95) t.vy *= -1;
+                const px = t.x * width + (mouseX - width / 2) * 0.02;
+                const py = t.y * height + (mouseY - height / 2) * 0.02;
+                ctx.fillText(`⌖ ${t.text}`, px, py);
+            });
+
+            // 4. Connect nearby telemetry nodes with ballistic lines
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 110) {
+                        ctx.strokeStyle = `rgba(212, 175, 55, ${0.12 * (1 - dist / 110)})`;
+                        ctx.lineWidth = 0.6;
+                        ctx.beginPath();
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+
+            // 5. Update and Draw Particles with Cursor Repulsion/Attraction
+            particles.forEach(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+
+                // Mouse interaction: gentle repulsion within 130px
+                const mdx = p.x - mouseX;
+                const mdy = p.y - mouseY;
+                const mdist = Math.sqrt(mdx * mdx + mdy * mdy);
+                if (mdist < 130 && mdist > 1) {
+                    const force = (130 - mdist) / 130 * 1.4;
+                    p.x += (mdx / mdist) * force;
+                    p.y += (mdy / mdist) * force;
+                }
+
+                // Screen boundaries bounce
+                if (p.x < 0) { p.x = 0; p.vx *= -1; }
+                if (p.x > width) { p.x = width; p.vx *= -1; }
+                if (p.y < 0) { p.y = 0; p.vy *= -1; }
+                if (p.y > height) { p.y = height; p.vy *= -1; }
+
+                ctx.fillStyle = `rgba(212, 175, 55, ${p.alpha})`;
+                ctx.strokeStyle = `rgba(212, 175, 55, ${p.alpha})`;
+
+                if (p.type === 'cross') {
+                    ctx.beginPath();
+                    ctx.moveTo(p.x - 3, p.y);
+                    ctx.lineTo(p.x + 3, p.y);
+                    ctx.moveTo(p.x, p.y - 3);
+                    ctx.lineTo(p.x, p.y + 3);
+                    ctx.stroke();
+                } else if (p.type === 'diamond') {
+                    ctx.beginPath();
+                    ctx.moveTo(p.x, p.y - 3);
+                    ctx.lineTo(p.x + 3, p.y);
+                    ctx.lineTo(p.x, p.y + 3);
+                    ctx.lineTo(p.x - 3, p.y);
+                    ctx.closePath();
+                    ctx.stroke();
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+
+            // 6. Tactical Cursor Smooth LERP Tracking
+            ringX += (targetMouseX - ringX) * 0.18;
+            ringY += (targetMouseY - ringY) * 0.18;
+
+            const cDot = document.getElementById('tacticalCursorDot');
+            const cRing = document.getElementById('tacticalCursorRing');
+
+            if (cDot && cRing) {
+                cDot.style.left = `${targetMouseX}px`;
+                cDot.style.top = `${targetMouseY}px`;
+                cRing.style.left = `${ringX}px`;
+                cRing.style.top = `${ringY}px`;
+            }
+
+            requestAnimationFrame(drawTacticalScene);
+        }
+
+        window.addEventListener('mousemove', (e) => {
+            targetMouseX = e.clientX;
+            targetMouseY = e.clientY;
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        // Hover detection on interactive elements
+        function initCursorHover() {
+            const targets = document.querySelectorAll('button, a, input, select, textarea, tr, .bracket-box, .dept-chip, [onclick]');
+            const cRing = document.getElementById('tacticalCursorRing');
+            const cDot = document.getElementById('tacticalCursorDot');
+
+            targets.forEach(el => {
+                el.addEventListener('mouseenter', () => {
+                    if (cRing) cRing.classList.add('targeting');
+                    if (cDot) cDot.classList.add('targeting');
+                });
+                el.addEventListener('mouseleave', () => {
+                    if (cRing) cRing.classList.remove('targeting');
+                    if (cDot) cDot.classList.remove('targeting');
+                });
+            });
+        }
+
+        // Fullscreen Toggle
+        function toggleFullscreen() {
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen();
+                } else if (document.documentElement.webkitRequestFullscreen) {
+                    document.documentElement.webkitRequestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
+            }
+        }
+
+        document.addEventListener('fullscreenchange', () => {
+            const isFull = !!document.fullscreenElement;
+            const btnText = document.getElementById('fullscreenText');
+            if (btnText) {
+                btnText.innerText = isFull ? 'EXIT FULLSCREEN' : 'FULLSCREEN HUD';
+            }
+            showNotice(isFull ? 'Entered Immersive Defence Command Fullscreen.' : 'Exited Fullscreen.');
+        });
+
+        // Keyboard Shortcuts (User-Friendly Quick Navigation)
+        window.addEventListener('keydown', (e) => {
+            // Press '/' to search
+            if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+                setMode('user');
+                setTimeout(() => {
+                    const searchEl = document.getElementById('userSearchInput');
+                    if (searchEl) {
+                        searchEl.focus();
+                        searchEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }, 100);
+                showNotice('Directive Search Activated (Shortcut: /)');
+            }
+            // Press 'F' to toggle fullscreen
+            if ((e.key === 'f' || e.key === 'F') && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+                toggleFullscreen();
+            }
+            // Press 'Esc' to close modals & drawers
+            if (e.key === 'Escape') {
+                closeUploadModal();
+                closePdfModal();
+                const d = document.getElementById('chatbotDrawer');
+                if (d) d.classList.remove('open');
+            }
+        });
+
+        window.onload = function() {
+            refreshAll();
+            initCursorHover();
+            requestAnimationFrame(drawTacticalScene);
+        };
+    </script>
+</body>
+</html>
